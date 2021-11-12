@@ -1,5 +1,5 @@
 # from https://youtu.be/aWgJYd5kVfo
-# than you algovibes
+# thank you algovibes
 # SMA with live data
 # not tested
 
@@ -49,7 +49,7 @@ def createframe(msg):
 async def main(coin, qty, SL_limit, open_position = False):
     bm = BinanceSocketManager(client)
     ts = bm.trade_socket(coin)
-    asyn with ts as tscm:
+    async with ts as tscm:
         while True:
             res = await tscm.recv()
             if res:
@@ -71,4 +71,4 @@ async def main(coin, qty, SL_limit, open_position = False):
                             type='MARKET',
                             quantity=qty)
                         print(order)
-                        loop.stop()
+                        loop.stop() #jypiter ?
