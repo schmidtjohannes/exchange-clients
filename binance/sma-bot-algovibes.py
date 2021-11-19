@@ -71,4 +71,8 @@ async def main(coin, qty, SL_limit, open_position = False):
                             type='MARKET',
                             quantity=qty)
                         print(order)
-                        loop.stop() #jypiter ?
+                        loop.stop() #Jupyter ?
+
+if __name__ == '__main__':
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main('ADAUSDT', 100, 0.98))
