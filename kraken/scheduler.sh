@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# usage
+# ./scheduler.sh > scheduler.log 2>&1 &
+
 while true
 do
 	date
