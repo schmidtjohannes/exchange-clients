@@ -12,8 +12,9 @@ do
 		if [ -z "$res" ]
 		then
 			echo $p not running, will start now
-	      		python3 -u simple-sma-loop.py $p > $pUSD.log 2>&1 &	
+			log_file="${p}USDT.log"
+			python3 -u simple-sma-loop.py "${p}" > ${log_file} 2>&1 &
 		fi
 		done <coin.list
-	sleep 5
+	sleep 30
 done
