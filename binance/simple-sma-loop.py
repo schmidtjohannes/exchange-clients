@@ -11,6 +11,9 @@ import gc
 INTERVAL_IN_MIN = 15
 INTERVAL_IN_MIN_BNC_UNIT = Client.KLINE_INTERVAL_15MINUTE
 INITIAL_DELAY_IN_MIN = INTERVAL_IN_MIN
+SLEEP_INTERVAL_IN_SEC = 50
+SHORT_TERM = 5
+LONG_TERM = 8
 
 ETHUSDT_COIN = {
   "bot_pair": "ETHUSDT",
@@ -42,7 +45,7 @@ LRCUSDT_COIN = {
 # Non altcoin
 ENJUSDT_COIN = {
   "bot_pair": "ENJUSDT",
-  "quantity": 2,
+  "quantity": 4,
   "asset": "ENJ",
   "float_lot": False
 }
@@ -65,7 +68,14 @@ BLZUSDT_COIN = {
   "bot_pair": "BLZUSDT",
   "quantity": 30,
   "asset": "BLZ",
-  "float_lot": True
+  "float_lot": False
+}
+
+SANDUSDT_COIN = {
+  "bot_pair": "SANDUSDT",
+  "quantity": 2,
+  "asset": "SAND",
+  "float_lot": False
 }
 
 AVAILABLE_COINS = { 
@@ -76,7 +86,8 @@ AVAILABLE_COINS = {
     "ENJ" : ENJUSDT_COIN ,
     "FLOW" : FLOWUSDT_COIN ,
     "IOTA" : IOTAUSDT_COIN ,
-    "BLZ" : BLZUSDT_COIN
+    "BLZ" : BLZUSDT_COIN ,
+    "SAND" : SANDUSDT_COIN
 }
 
 COIN = {}
@@ -88,15 +99,17 @@ def print_memory():
 def SMA(df):
     closes = pd.DataFrame(df['Close'])
     closes.columns = ['Close']
-    for i in [5,8]:
+    for i in [SHORT_TERM, LONG_TERM]:
         sma = 'SMA_{}'.format(i)
         closes[sma] = closes.Close.rolling(i, min_periods=1).mean()
+    # reverse list
     closes = closes.iloc[::-1]
     # drop NaN rows
     closes.dropna(inplace=True)
     return closes
 
 def get_ohlc_data(coin):
+    # TODO define how many time frames are necessary to do SMA
     unixtime = time.time() - (60 * 60 * INTERVAL_IN_MIN)
     try:
         frame = pd.DataFrame(binance_client.get_historical_klines(coin, interval=INTERVAL_IN_MIN_BNC_UNIT, start_str=str(unixtime)))
@@ -159,7 +172,7 @@ def main(coin, qty, stoploss, takeprofit):
             order = create_order(qty, side='BUY')
             print_memory()
             open_position = True
-            time.sleep(5)
+            time.sleep(SLEEP_INTERVAL_IN_SEC)
         if open_position:
             while True:
                 print('\nCheck SELL at ' + get_time())
@@ -193,9 +206,9 @@ def main(coin, qty, stoploss, takeprofit):
                     open_position = False
                     order = {}
                     break
-                time.sleep(15)
+                time.sleep(SLEEP_INTERVAL_IN_SEC)
         # TODO each min
-        time.sleep(15)
+        time.sleep(SLEEP_INTERVAL_IN_SEC)
 
 if __name__ == '__main__':
     config = configparser.ConfigParser()
