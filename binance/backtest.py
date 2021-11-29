@@ -71,7 +71,7 @@ SANDUSDT_COIN = {
   "float_lot": False
 }
 
-COIN = MANAUSDT_COIN
+COIN = SANDUSDT_COIN
 
 def SMA(df):
 
@@ -88,10 +88,10 @@ def SMA(df):
 def get_ohlc_data(coin):
     unixtime = time.time() - (60 * 60 * INTERVAL_IN_MIN)
     try:
-        frame = pd.DataFrame(binance_client.get_historical_klines(coin, interval=INTERVAL_IN_MIN_BNC_UNIT, start_str=str(unixtime)))
+        frame = pd.DataFrame(binance_client.get_historical_klines(coin, interval=INTERVAL_IN_MIN_BNC_UNIT, start_str="26 Nov, 2021", end_str="27 Nov, 2021"))
     except:
         time.sleep(5)
-        frame = pd.DataFrame(binance_client.get_historical_klines(coin, interval=INTERVAL_IN_MIN_BNC_UNIT, start_str=str(unixtime)))
+        frame = pd.DataFrame(binance_client.get_historical_klines(coin, interval=INTERVAL_IN_MIN_BNC_UNIT, start_str="26 Nov, 2021", end_str="27 Nov, 2021"))
     frame = frame.iloc[:,:6]
     frame.columns = ['Time', 'High', 'Low', 'Open', 'Close', 'Volume']
     frame = frame.set_index('Time')
@@ -115,7 +115,7 @@ if __name__ == '__main__':
     print("")
     print("backtest for " + COIN['asset'])
     print("")
-    #main(LRCUSDT_COIN['bot_pair'], LRCUSDT_COIN['quantity'], 0.99, 1.015)
+
     ohlc = get_ohlc_data(COIN['bot_pair'])
 
     buy_SMA_closes = SMA(ohlc)

@@ -151,6 +151,12 @@ def get_previous_sma_values(closes):
 def get_current_sma_values(closes):
     return closes.iloc[0]['SMA_5'], closes.iloc[0]['SMA_8']
 
+def is_higher_than_previous(ohlc, current_close):
+    rev_ohlc = ohlc.iloc[::-1]
+    previous_close = rev_ohlc.iloc[1]['Close']
+    pre_previous_close = rev_ohlc.iloc[2]['Close']
+    return current_close > previous_close and previous_close > pre_previous_close
+
 def main(coin, qty, stoploss, takeprofit):
     open_position = False
     while True:
@@ -160,6 +166,8 @@ def main(coin, qty, stoploss, takeprofit):
         shortTerm, longTerm = get_current_sma_values(buy_SMA_closes)
         time.sleep(1)
         current_close = get_current_close(coin)
+        is_higher = is_higher_than_previous(ohlc, current_close)
+        print('is_higher_than_previous ' + str(is_higher))
         print('current_close ' + str(current_close))
         print('shortTerm ' + str(shortTerm))
         print('longTerm ' + str(longTerm))
@@ -168,7 +176,9 @@ def main(coin, qty, stoploss, takeprofit):
         del buy_SMA_closes
         gc.collect()
         time.sleep(5)
-        if shortTerm >= longTerm and current_close >= shortTerm:
+        if not open_position and (
+                (is_higher and current_close > shortTerm) or
+                (shortTerm >= (longTerm * 1.01) and current_close >= shortTerm)):
             order = create_order(qty, side='BUY')
             print_memory()
             open_position = True
