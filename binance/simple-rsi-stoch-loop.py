@@ -1,17 +1,17 @@
 from binance import Client
 import configparser
 import pandas as pd
+import ta
 import time
+import numpy as np
 from datetime import datetime
 import math
 import sys
-import os, psutil
-import gc
 
-INTERVAL_IN_MIN = 15
-INTERVAL_IN_MIN_BNC_UNIT = Client.KLINE_INTERVAL_15MINUTE
+INTERVAL_IN_MIN = 1
+INTERVAL_IN_MIN_BNC_UNIT = Client.KLINE_INTERVAL_1MINUTE
 INITIAL_DELAY_IN_MIN = INTERVAL_IN_MIN
-SLEEP_INTERVAL_IN_SEC = 50
+SLEEP_INTERVAL_IN_SEC = 5
 SHORT_TERM = 5
 LONG_TERM = 8
 
@@ -92,30 +92,37 @@ AVAILABLE_COINS = {
 
 COIN = {}
 
-def print_memory():
-    print("[TRACE] - Memory usage in MB: " + str(psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2))
-    print("")
+class Signals:
+    def __init__(self, df, lags):
+        self.df = df
+        self.lags = lags
+    
+    def gettrigger(self):
+        dfx = pd.DataFrame()
+        for i in range(1,self.lags+1):
+                mask = (self.df['%K'].shift(i) < 20) & (self.df['%D'].shift(i) < 20)
+                dfx = dfx.append(mask, ignore_index=True)
+        return dfx.sum(axis=0)
 
-def SMA(df):
-    closes = pd.DataFrame(df['Close'])
-    closes.columns = ['Close']
-    for i in [SHORT_TERM, LONG_TERM]:
-        sma = 'SMA_{}'.format(i)
-        closes[sma] = closes.Close.rolling(i, min_periods=1).mean()
-    # reverse list
-    closes = closes.iloc[::-1]
+    def decide(self):
+        self.df['trigger'] = np.where(self.gettrigger(), 1, 0)
+        self.df['Buy'] = np.where((self.df.trigger) & (self.df['%K'].between(20,80)) & (self.df['%D'].between(20,80))
+                            & (self.df.rsi > 50) & (self.df.macd > 0), 1, 0)
+
+def add_stats(ohlc):
+    ohlc['%K'] = ta.momentum.stoch(ohlc.High, ohlc.Low, ohlc.Close, window=14, smooth_window=3)
+    ohlc['%D'] = ohlc['%K'].rolling(3).mean()
+    ohlc['rsi'] = ta.momentum.rsi(ohlc.Close, window=14)
+    ohlc['macd'] = ta.trend.macd_diff(ohlc.Close)
     # drop NaN rows
-    closes.dropna(inplace=True)
-    return closes
+    ohlc.dropna(inplace=True)
 
 def get_ohlc_data(coin):
-    # TODO define how many time frames are necessary to do SMA
-    unixtime = time.time() - (60 * 60 * INTERVAL_IN_MIN)
     try:
-        frame = pd.DataFrame(binance_client.get_historical_klines(coin, interval=INTERVAL_IN_MIN_BNC_UNIT, start_str=str(unixtime)))
+        frame = pd.DataFrame(binance_client.get_historical_klines(coin, INTERVAL_IN_MIN_BNC_UNIT, "100 min ago"))
     except:
         time.sleep(5)
-        frame = pd.DataFrame(binance_client.get_historical_klines(coin, interval=INTERVAL_IN_MIN_BNC_UNIT, start_str=str(unixtime)))
+        frame = pd.DataFrame(binance_client.get_historical_klines(coin, INTERVAL_IN_MIN_BNC_UNIT, "100 min ago"))
     frame = frame.iloc[:,:6]
     frame.columns = ['Time', 'High', 'Low', 'Open', 'Close', 'Volume']
     frame = frame.set_index('Time')
@@ -145,74 +152,49 @@ def create_order(quantity, side='BUY', leverage=None):
     order['price'] = float(order['fills'][0]['price'])
     return order
 
-def get_previous_sma_values(closes):
-    return closes.iloc[1]['SMA_5'], closes.iloc[1]['SMA_8']
-
-def get_current_sma_values(closes):
-    return closes.iloc[0]['SMA_5'], closes.iloc[0]['SMA_8']
-
-def is_higher_than_previous(ohlc, current_close):
-    rev_ohlc = ohlc.iloc[::-1]
-    previous_close = rev_ohlc.iloc[1]['Close']
-    pre_previous_close = rev_ohlc.iloc[2]['Close']
-    return current_close > previous_close and previous_close > pre_previous_close
-
-def is_higher_than_previous_simple(ohlc, current_close):
-    rev_ohlc = ohlc.iloc[::-1]
-    previous_close = rev_ohlc.iloc[1]['Close']
-    return current_close > previous_close
-
 def main(coin, qty, stoploss, takeprofit):
     open_position = False
+    trailing_loss_price = 0.0
+    basic_takeprofit = 1000000.0
+    buy_price = 0.0
     while True:
         print('\nCheck BUY at ' + get_time())
         ohlc = get_ohlc_data(coin)
-        buy_SMA_closes = SMA(ohlc)
-        shortTerm, longTerm = get_current_sma_values(buy_SMA_closes)
+        add_stats(ohlc)
+        sig = Signals(ohlc, 3)
+        sig.decide()
         time.sleep(1)
-        current_close = get_current_close(coin)
-        is_higher = is_higher_than_previous_simple(ohlc, current_close)
-        print('is_higher_than_previous ' + str(is_higher))
+        current_close = ohlc.Close.iloc[-1]
+
         print('current_close ' + str(current_close))
-        print('shortTerm ' + str(shortTerm))
-        print('longTerm ' + str(longTerm))
-        print_memory()
-        del ohlc
-        del buy_SMA_closes
-        gc.collect()
-        time.sleep(5)
+        print("ohlc.Buy.iloc[-1] " + str(ohlc.Buy.iloc[-1]))
         if not open_position and (
-                is_higher and
-                shortTerm >= longTerm and current_close >= shortTerm):
+                ohlc.Buy.iloc[-1]):
             order = create_order(qty, side='BUY')
-            print_memory()
             open_position = True
             time.sleep(SLEEP_INTERVAL_IN_SEC)
+            trailing_loss_price = order['price']
+            basic_takeprofit = order['price'] * takeprofit
+            buy_price = order['price']
         if open_position:
             while True:
                 print('\nCheck SELL at ' + get_time())
-                print_memory()
+
                 # let's wait one interval before start checking
                 if order['transactTime'] + (60 * INITIAL_DELAY_IN_MIN) > time.time():
                     print('Sleep until initial INTERVAL is over')
                     time.sleep(INITIAL_DELAY_IN_MIN)
                     continue
                 ohlc = get_ohlc_data(coin)
-                SMA_closes = SMA(ohlc)
-                print_memory()
-                time.sleep(1)
-                current_close = get_current_close(coin)
-                print_memory()
-                print('current_close ' + str(current_close))
-                print('order[price] ' + str(order['price']))
-                print('shortTerm ' + str(shortTerm))
-                print('longTerm ' + str(longTerm))
-                shortTerm, longTerm = get_previous_sma_values(SMA_closes)
-                del SMA_closes
-                del ohlc
-                gc.collect()
-                print_memory()
-                if current_close < longTerm or current_close < order['price'] * stoploss or current_close > order['price'] * takeprofit:
+                current_close = ohlc.Close.iloc[-1]
+
+                #if open_position and current_close > trailing_loss_price and current_close > basic_takeprofit:
+                #    trailing_loss_price = current_close
+                print(f'current close ' + str(current_close))
+                print(f'current target ' + str(trailing_loss_price * takeprofit))
+                print(f'current stop ' + str(trailing_loss_price * stoploss))
+                #if current_close < trailing_loss_price * stoploss or current_close > trailing_loss_price * takeprofit:
+                if current_close < trailing_loss_price * stoploss or current_close > trailing_loss_price * takeprofit:
                     # sell all you have
                     current_quantity = float(binance_client.get_asset_balance(COIN['asset'])['free'])
                     if not COIN['float_lot']:
@@ -220,6 +202,9 @@ def main(coin, qty, stoploss, takeprofit):
                     order = create_order(current_quantity, side='SELL')
                     open_position = False
                     order = {}
+                    trailing_loss_price = 0.0
+                    basic_takeprofit = 1000000.0
+                    buy_price = 0.0
                     break
                 time.sleep(SLEEP_INTERVAL_IN_SEC)
         # TODO each min
@@ -231,8 +216,7 @@ if __name__ == '__main__':
     api_key = config.get('BINANCE', 'KEY')
     api_secret = config.get('BINANCE', 'SECRET')
     binance_client = Client(api_key, api_secret)
-    
-    print_memory()
+
     if len(sys.argv) != 2:
         sys.exit("[ERROR] - No coin passed, avialable coins: " + str(list(AVAILABLE_COINS.keys())))
 
@@ -241,4 +225,4 @@ if __name__ == '__main__':
         sys.exit("[ERROR] - " + coin_arg + " is not in " + str(list(AVAILABLE_COINS.keys())))
 
     COIN = AVAILABLE_COINS[coin_arg]
-    main(COIN['bot_pair'], COIN['quantity'], 0.995, 1.015)
+    main(COIN['bot_pair'], COIN['quantity'], 0.996, 1.004)

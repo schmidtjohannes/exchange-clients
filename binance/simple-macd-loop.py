@@ -108,6 +108,17 @@ def SMA(df):
     closes.dropna(inplace=True)
     return closes
 
+def MACD(df):
+    df['EMA12'] = df.Close.ewm(span=12).mean()
+    df['EMA26'] = df.Close.ewm(span=26).mean()
+    df['MACD'] = df['EMA26'] - df['EMA12']
+    df['signal'] = df.MACD.ewm(span=9).mean()
+    # reverse list
+    df = df.iloc[::-1]
+    # drop NaN rows
+    df.dropna(inplace=True)
+    return df
+
 def get_ohlc_data(coin):
     # TODO define how many time frames are necessary to do SMA
     unixtime = time.time() - (60 * 60 * INTERVAL_IN_MIN)
@@ -157,33 +168,29 @@ def is_higher_than_previous(ohlc, current_close):
     pre_previous_close = rev_ohlc.iloc[2]['Close']
     return current_close > previous_close and previous_close > pre_previous_close
 
-def is_higher_than_previous_simple(ohlc, current_close):
-    rev_ohlc = ohlc.iloc[::-1]
-    previous_close = rev_ohlc.iloc[1]['Close']
-    return current_close > previous_close
-
 def main(coin, qty, stoploss, takeprofit):
     open_position = False
     while True:
         print('\nCheck BUY at ' + get_time())
         ohlc = get_ohlc_data(coin)
-        buy_SMA_closes = SMA(ohlc)
-        shortTerm, longTerm = get_current_sma_values(buy_SMA_closes)
+        macd_frames = MACD(ohlc)
         time.sleep(1)
         current_close = get_current_close(coin)
-        is_higher = is_higher_than_previous_simple(ohlc, current_close)
-        print('is_higher_than_previous ' + str(is_higher))
+        current_macd = macd_frames.MACD.iloc[0]
+        current_signal = macd_frames.signal.iloc[0]
+        previous_macd = macd_frames.MACD.iloc[1]
+        previous_signal = macd_frames.signal.iloc[1]
         print('current_close ' + str(current_close))
-        print('shortTerm ' + str(shortTerm))
-        print('longTerm ' + str(longTerm))
+        print('current_macd ' + str(current_macd))
+        print('current_signal ' + str(current_signal))
+        print('previous_macd ' + str(previous_macd))
+        print('previous_signal ' + str(previous_signal))
         print_memory()
         del ohlc
-        del buy_SMA_closes
+        del macd_frames
         gc.collect()
         time.sleep(5)
-        if not open_position and (
-                is_higher and
-                shortTerm >= longTerm and current_close >= shortTerm):
+        if not open_position and current_macd > current_signal and previous_macd < previous_signal:
             order = create_order(qty, side='BUY')
             print_memory()
             open_position = True
@@ -198,21 +205,28 @@ def main(coin, qty, stoploss, takeprofit):
                     time.sleep(INITIAL_DELAY_IN_MIN)
                     continue
                 ohlc = get_ohlc_data(coin)
-                SMA_closes = SMA(ohlc)
-                print_memory()
+                macd_frames = MACD(ohlc)
                 time.sleep(1)
                 current_close = get_current_close(coin)
                 print_memory()
+                print_memory()
                 print('current_close ' + str(current_close))
                 print('order[price] ' + str(order['price']))
-                print('shortTerm ' + str(shortTerm))
-                print('longTerm ' + str(longTerm))
-                shortTerm, longTerm = get_previous_sma_values(SMA_closes)
-                del SMA_closes
+                current_macd = macd_frames.MACD.iloc[0]
+                current_signal = macd_frames.signal.iloc[0]
+                previous_macd = macd_frames.MACD.iloc[1]
+                previous_signal = macd_frames.signal.iloc[1]
+                print('current_close ' + str(current_close))
+                print('current_macd ' + str(current_macd))
+                print('current_signal ' + str(current_signal))
+                print('previous_macd ' + str(previous_macd))
+                print('previous_signal ' + str(previous_signal))
+                del macd_frames
                 del ohlc
                 gc.collect()
                 print_memory()
-                if current_close < longTerm or current_close < order['price'] * stoploss or current_close > order['price'] * takeprofit:
+                if current_macd < current_signal and previous_macd > previous_signal:
+                #if shortTerm < longTerm or current_close < order['price'] * stoploss or current_close > order['price'] * takeprofit:
                     # sell all you have
                     current_quantity = float(binance_client.get_asset_balance(COIN['asset'])['free'])
                     if not COIN['float_lot']:
@@ -241,4 +255,4 @@ if __name__ == '__main__':
         sys.exit("[ERROR] - " + coin_arg + " is not in " + str(list(AVAILABLE_COINS.keys())))
 
     COIN = AVAILABLE_COINS[coin_arg]
-    main(COIN['bot_pair'], COIN['quantity'], 0.995, 1.015)
+    main(COIN['bot_pair'], COIN['quantity'], 0.99, 1.015)
