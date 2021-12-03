@@ -52,3 +52,34 @@ buy, sell = getSignals(frame)
 Profits = (frame.loc[sell].Open.values - frame.loc[buy].Open.values) / frame.loc[buy].Open.values
 
 print(Profits)
+
+wins = [i for i in Profits if i > 0]
+
+print(wins)
+
+win_rate = len(wins) / len(Profits)
+
+matrixsignals = []
+matrixprofits = []
+
+for i in range(len(tickers)):
+    frame = RSIcalc(tickers[i])
+    buy,sell = getSignals(frame)
+    Profits = (frame.loc[sell].Open.values - frame.loc[buy].Open.values) / frame.loc[buy].Open.values
+    matrixsignals.append(buy)
+    matrixprofits.append(Profits)
+
+print(matrixsignals)
+print(matrixprofits)
+
+allprofit = []
+for i in matrixprofits:
+    for e in i:
+        allprofit.append(e)
+
+all_wins = [i for i in allprofit if i > 0]
+
+print(len(all_wins)/len(allprofit))
+
+plt.hist(allprofit, bins=100)
+plt.show()
