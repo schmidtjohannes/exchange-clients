@@ -78,6 +78,13 @@ SANDUSDT_COIN = {
   "float_lot": False
 }
 
+MATICUSDT_COIN = {
+  "bot_pair": "MATICUSDT",
+  "quantity": 10,
+  "asset": "MATIC",
+  "float_lot": False
+}
+
 AVAILABLE_COINS = { 
     "MANA" : MANAUSDT_COIN ,
     "DOT" : DOTUSDT_COIN,
@@ -87,7 +94,8 @@ AVAILABLE_COINS = {
     "FLOW" : FLOWUSDT_COIN ,
     "IOTA" : IOTAUSDT_COIN ,
     "BLZ" : BLZUSDT_COIN ,
-    "SAND" : SANDUSDT_COIN
+    "SAND" : SANDUSDT_COIN ,
+    "MATIC" : MATICUSDT_COIN
 }
 
 COIN = {}
