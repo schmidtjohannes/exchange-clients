@@ -150,9 +150,9 @@ def get_current_close(coin):
         ticker = binance_client.get_symbol_ticker(symbol=coin)
     return float(ticker['price'])
 
-def create_order(quantity, side='BUY', leverage=None):
+def create_order(coin, quantity, side='BUY'):
     print('create '+ side +' order via API')
-    order = binance_client.create_order(symbol=COIN['bot_pair'],
+    order = binance_client.create_order(symbol=coin,
         side=side,
         type='MARKET',
         quantity=quantity)
@@ -164,7 +164,6 @@ def main(coin, qty, stoploss, takeprofit):
     open_position = False
     trailing_loss_price = 0.0
     basic_takeprofit = 1000000.0
-    buy_price = 0.0
     while True:
         print('\nCheck BUY at ' + get_time())
         ohlc = get_ohlc_data(coin)
@@ -178,12 +177,11 @@ def main(coin, qty, stoploss, takeprofit):
         print("ohlc.Buy.iloc[-1] " + str(ohlc.Buy.iloc[-1]))
         if not open_position and (
                 ohlc.Buy.iloc[-1]):
-            order = create_order(qty, side='BUY')
+            order = create_order(coin, qty, side='BUY')
             open_position = True
             time.sleep(SLEEP_INTERVAL_IN_SEC)
             trailing_loss_price = order['price']
             basic_takeprofit = order['price'] * takeprofit
-            buy_price = order['price']
         if open_position:
             while True:
                 print('\nCheck SELL at ' + get_time())
@@ -196,23 +194,21 @@ def main(coin, qty, stoploss, takeprofit):
                 ohlc = get_ohlc_data(coin)
                 current_close = ohlc.Close.iloc[-1]
 
-                #if open_position and current_close > trailing_loss_price and current_close > basic_takeprofit:
-                #    trailing_loss_price = current_close
+                if open_position and current_close > trailing_loss_price and current_close > basic_takeprofit:
+                    trailing_loss_price = current_close
                 print(f'current close ' + str(current_close))
                 print(f'current target ' + str(trailing_loss_price * takeprofit))
                 print(f'current stop ' + str(trailing_loss_price * stoploss))
-                #if current_close < trailing_loss_price * stoploss or current_close > trailing_loss_price * takeprofit:
                 if current_close < trailing_loss_price * stoploss or current_close > trailing_loss_price * takeprofit:
                     # sell all you have
                     current_quantity = float(binance_client.get_asset_balance(COIN['asset'])['free'])
                     if not COIN['float_lot']:
                         current_quantity = math.floor(current_quantity)
-                    order = create_order(current_quantity, side='SELL')
+                    order = create_order(coin, current_quantity, side='SELL')
                     open_position = False
                     order = {}
                     trailing_loss_price = 0.0
                     basic_takeprofit = 1000000.0
-                    buy_price = 0.0
                     break
                 time.sleep(SLEEP_INTERVAL_IN_SEC)
         # TODO each min
@@ -233,4 +229,4 @@ if __name__ == '__main__':
         sys.exit("[ERROR] - " + coin_arg + " is not in " + str(list(AVAILABLE_COINS.keys())))
 
     COIN = AVAILABLE_COINS[coin_arg]
-    main(COIN['bot_pair'], COIN['quantity'], 0.996, 1.004)
+    main(COIN['bot_pair'], COIN['quantity'], 0.996, 1.005)
