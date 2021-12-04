@@ -117,7 +117,8 @@ def SMA(df):
     return df
 
 def get_ohlc_data(coin):
-    frame = pd.DataFrame(binance_client.get_historical_klines(coin, interval=INTERVAL_IN_MIN_BNC_UNIT, start_str="1 Nov, 2021", end_str="8 Nov, 2021"))
+    #frame = pd.DataFrame(binance_client.get_historical_klines(coin, interval=INTERVAL_IN_MIN_BNC_UNIT, start_str="1 Nov, 2021", end_str="8 Nov, 2021"))
+    frame = pd.DataFrame(binance_client.get_historical_klines(coin, Client.KLINE_INTERVAL_1MINUTE, "10 hours ago"))
     frame = frame.iloc[:,:6]
     frame.columns = ['Time', 'High', 'Low', 'Open', 'Close', 'Volume']
     frame = frame.set_index('Time')
@@ -127,7 +128,7 @@ def get_ohlc_data(coin):
 
 def get_micro_ohlc_data(coin):
     #frame = pd.DataFrame(binance_client.get_historical_klines(coin, interval=Client.KLINE_INTERVAL_1MINUTE, start_str="1 Nov, 2021", end_str="8 Nov, 2021"))
-    frame = pd.DataFrame(binance_client.get_historical_klines(coin, Client.KLINE_INTERVAL_1MINUTE, "2 days ago"))
+    frame = pd.DataFrame(binance_client.get_historical_klines(coin, Client.KLINE_INTERVAL_1MINUTE, "10 hours ago"))
     frame = frame.iloc[:,:6]
     frame.columns = ['Time', 'High', 'Low', 'Open', 'Close', 'Volume']
     frame = frame.set_index('Time')
@@ -488,8 +489,8 @@ if __name__ == '__main__':
     print("")
     print("backtest for " + COIN['asset'])
     print("")
-    #test_sma()
+    test_sma()
     #time.sleep(5)
-    test_micro_rsi_macd()
+    #test_micro_rsi_macd()
     #time.sleep(5)
     #test_macd()
