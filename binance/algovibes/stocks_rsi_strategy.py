@@ -62,15 +62,20 @@ win_rate = len(wins) / len(Profits)
 matrixsignals = []
 matrixprofits = []
 
-for i in range(len(tickers)):
-    frame = RSIcalc(tickers[i])
-    buy,sell = getSignals(frame)
-    Profits = (frame.loc[sell].Open.values - frame.loc[buy].Open.values) / frame.loc[buy].Open.values
-    matrixsignals.append(buy)
-    matrixprofits.append(Profits)
+# for i in range(len(tickers)):
+#     frame = RSIcalc(tickers[i])
+#     buy,sell = getSignals(frame)
+#     Profits = (frame.loc[sell].Open.values - frame.loc[buy].Open.values) / frame.loc[buy].Open.values
+#     matrixsignals.append(buy)
+#     matrixprofits.append(Profits)
 
 print(matrixsignals)
 print(matrixprofits)
+
+# avgs = %  of profit , then . mean()
+
+# then sum(avgs)/len(avgs)
+
 
 allprofit = []
 for i in matrixprofits:
