@@ -31,7 +31,7 @@ if __name__ == '__main__':
     # remove first row if SELL
     if not df.iloc[0].isBuyer:
         df = df.tail(len(df) - 1)
-    df = df.tail(len(df) - 1)
+    #df = df.tail(len(df) - 1)
     # remove last row if BUY
     if df.iloc[-1].isBuyer:
         df = df.head(len(df) - 1)
