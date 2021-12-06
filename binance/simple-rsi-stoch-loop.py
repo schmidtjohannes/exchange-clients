@@ -17,7 +17,7 @@ LONG_TERM = 8
 
 DOTBNB_COIN = {
   "bot_pair": "DOTBNB",
-  "quantity": 1,
+  "quantity": 2,
   "asset": "DOT",
   "float_lot": True
 }
@@ -25,28 +25,28 @@ DOTBNB_COIN = {
 # Non altcoin
 ENJBNB_COIN = {
   "bot_pair": "ENJBNB",
-  "quantity": 4,
+  "quantity": 12,
   "asset": "ENJ",
   "float_lot": False
 }
 # Non altcoin
 FLOWBNB_COIN = {
   "bot_pair": "FLOWBNB",
-  "quantity": 0.2,
+  "quantity": 4,
   "asset": "FLOW",
   "float_lot": True
 }
 
 IOTABNB_COIN = {
   "bot_pair": "IOTABNB",
-  "quantity": 2,
+  "quantity": 30,
   "asset": "IOTA",
   "float_lot": False
 }
 
 SANDBNB_COIN = {
   "bot_pair": "SANDBNB",
-  "quantity": 2,
+  "quantity": 6,
   "asset": "SAND",
   "float_lot": False
 }
@@ -198,6 +198,8 @@ if __name__ == '__main__':
     api_key = config.get('BINANCE', 'KEY')
     api_secret = config.get('BINANCE', 'SECRET')
     binance_client = Client(api_key, api_secret)
+
+    pd.set_option('display.precision',8)
 
     if len(sys.argv) != 2:
         sys.exit("[ERROR] - No coin passed, avialable coins: " + str(list(AVAILABLE_COINS.keys())))
