@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from binance import Client
 import configparser
 import pandas as pd
@@ -21,7 +23,7 @@ if __name__ == '__main__':
 
     pd.set_option('display.precision',8)
 
-    orders = binance_client.get_my_trades(symbol=sys.argv[1] + 'USDT', limit=100)
+    orders = binance_client.get_my_trades(symbol=sys.argv[1] + 'BNB', limit=100)
     df = pd.DataFrame(orders)
     df = df.set_index('time')
     df.index = pd.to_datetime(df.index, unit='ms')
