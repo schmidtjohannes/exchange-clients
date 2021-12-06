@@ -17,7 +17,7 @@ LONG_TERM = 8
 
 ETHUSDT_COIN = {
   "bot_pair": "ETHUSDT",
-  "quantity": 0.001,
+  "quantity": 0.01,
   "asset": "ETH",
   "float_lot": True
 }
@@ -37,7 +37,7 @@ class Signals:
     def gettrigger(self):
         dfx = pd.DataFrame()
         for i in range(1,self.lags+1):
-                mask = (self.df['%K'].shift(i) > 80) & (self.df['%D'].shift(i) > 80)
+                mask = (self.df['%K'].shift(i) < 80) & (self.df['%D'].shift(i) < 80)
                 dfx = dfx.append(mask, ignore_index=True)
         return dfx.sum(axis=0)
 
@@ -81,10 +81,10 @@ def get_current_close(coin):
 
 def create_order(coin, quantity, side='BUY'):
     print('create '+ side +' order via API')
-    sideEffectType = "AUTO_REPAY"
+    sideEffectType = "MARGIN_BUY"
     if side == "BUY":
-        sideEffectType = "MARGIN_BUY"
-    order = binance_client.create_margin_order(coin,
+        sideEffectType = "AUTO_REPAY"
+    order = binance_client.create_margin_order(symbol=coin,
         side=side,
         type='MARKET',
         sideEffectType=sideEffectType,
@@ -98,7 +98,7 @@ def main(coin, qty, stoploss, takeprofit):
     open_position = False
     buy_price = 0.0
     while True:
-        print('\nCheck BUY at ' + get_time())
+        print('\nCheck SELL at ' + get_time())
         ohlc = get_ohlc_data(coin)
         add_stats(ohlc)
 
@@ -117,7 +117,7 @@ def main(coin, qty, stoploss, takeprofit):
             buy_price = order['price']
         if open_position:
             while True:
-                print('\nCheck SELL at ' + get_time())
+                print('\nCheck BUY at ' + get_time())
 
                 # let's wait one interval before start checking
                 if order['transactTime'] + (60 * INITIAL_DELAY_IN_MIN) > time.time():
@@ -147,6 +147,8 @@ if __name__ == '__main__':
     api_secret = config.get('BINANCE', 'SECRET')
     binance_client = Client(api_key, api_secret)
 
+    pd.set_option('display.precision',8)
+
     if len(sys.argv) != 2:
         sys.exit("[ERROR] - No coin passed, avialable coins: " + str(list(AVAILABLE_COINS.keys())))
 
@@ -155,4 +157,4 @@ if __name__ == '__main__':
         sys.exit("[ERROR] - " + coin_arg + " is not in " + str(list(AVAILABLE_COINS.keys())))
 
     COIN = AVAILABLE_COINS[coin_arg]
-    main(COIN['bot_pair'], COIN['quantity'], 1.004, 0.995)
+    main(COIN['bot_pair'], COIN['quantity'], 1.005, 0.994)
