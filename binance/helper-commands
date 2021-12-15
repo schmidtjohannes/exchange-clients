@@ -1,0 +1,2 @@
+# kill all long bots
+ps aux | grep simple-rsi-stoch-loop | awk '{ print $2 }' | head -n -1
