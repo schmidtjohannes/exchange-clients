@@ -60,7 +60,7 @@ MATICBNB_COIN = {
 
 GALABNB_COIN = {
   "bot_pair": "GALABNB",
-  "quantity": 20,
+  "quantity": 280,
   "asset": "GALA",
   "float_lot": False
 }
@@ -209,4 +209,4 @@ if __name__ == '__main__':
         sys.exit("[ERROR] - " + coin_arg + " is not in " + str(list(AVAILABLE_COINS.keys())))
 
     COIN = AVAILABLE_COINS[coin_arg]
-    main(COIN['bot_pair'], COIN['quantity'], 0.996, 1.005)
+    main(COIN['bot_pair'], COIN['quantity'], 0.99, 1.015)
