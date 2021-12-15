@@ -22,9 +22,16 @@ ETHUSDT_COIN = {
   "float_lot": True
 }
 
+BTCUSDT_COIN = {
+  "bot_pair": "BTCUSDT",
+  "quantity": 0.002,
+  "asset": "BTC",
+  "float_lot": True
+}
 
 AVAILABLE_COINS = { 
-    "ETH" : ETHUSDT_COIN
+    "ETH" : ETHUSDT_COIN,
+    "BTC" : BTCUSDT_COIN
 }
 
 COIN = {}
@@ -157,4 +164,4 @@ if __name__ == '__main__':
         sys.exit("[ERROR] - " + coin_arg + " is not in " + str(list(AVAILABLE_COINS.keys())))
 
     COIN = AVAILABLE_COINS[coin_arg]
-    main(COIN['bot_pair'], COIN['quantity'], 1.005, 0.994)
+    main(COIN['bot_pair'], COIN['quantity'], 1.01, 0.98)
