@@ -10,7 +10,7 @@ import numpy as np
 
 INTERVAL_IN_MIN_BNC_UNIT = Client.KLINE_INTERVAL_15MINUTE
 
-QTY = 500
+QTY = 150
 
 MATICBNB_COIN = {
   "bot_pair": "MATICBNB",
@@ -28,7 +28,7 @@ COIN = {}
 
 
 def get_ohlc_data(coin):
-    frame = pd.DataFrame(binance_client.get_historical_klines(coin, Client.KLINE_INTERVAL_1MINUTE, "24 hours ago"))
+    frame = pd.DataFrame(binance_client.get_historical_klines(coin, Client.KLINE_INTERVAL_15MINUTE, "72 hours ago"))
     frame = frame.iloc[:,:6]
     frame.columns = ['Time', 'High', 'Low', 'Open', 'Close', 'Volume']
     frame = frame.set_index('Time')
@@ -44,6 +44,7 @@ def get_bbands(df):
     df['bbands_upper'] = indicator_bb.bollinger_hband()
     df['bbands_middle'] = indicator_bb.bollinger_mavg()
     df['bbands_lower'] = indicator_bb.bollinger_lband()
+    df.dropna(inplace=True)
 
 def test_bbands():
     print("")
@@ -61,6 +62,7 @@ def test_bbands():
     ticker = binance_client.get_symbol_ticker(symbol="BNBUSDT")
     current_bnb = float(ticker['price'])
     print("amount of frames: " + str(len(ohlc)))
+
     for i, row in ohlc.iterrows():
         # print("")
         # print("index as timestamp - " + str(i))
@@ -68,7 +70,7 @@ def test_bbands():
         lower = row['bbands_lower']
         middle = row['bbands_middle']
         current_close = row['Close']
-
+        middle_lower = ((middle - lower) / 2) + lower
         # print("middle " + str(middle))
         # print("upper " + str(upper))
         # print("lower " + str(lower))
@@ -76,7 +78,7 @@ def test_bbands():
         # print("Stop loss " + str(buy_price * stoploss))
         # print("Take profit " + str(buy_price * takeprofit))
         if not open_position and (
-                current_close < middle):
+                current_close < middle_lower):
             # print("***BUY*** at " + str(i) + " price " + str(current_close))
             ctnBuy += 1
             trade = {}
@@ -84,6 +86,7 @@ def test_bbands():
             open_position = True
             trade['buy_time'] = i
             trade['buy_price'] = buy_price
+            trade['buy_commission'] = current_close * QTY * 0.00075 * current_bnb
         elif open_position and (
                 current_close > upper or
                 current_close < lower):
@@ -93,6 +96,7 @@ def test_bbands():
             ctnSell += 1
             trade['sell_time'] = i
             trade['sell_price'] = current_close
+            trade['sell_commission'] = current_close * QTY * 0.00075 * current_bnb
             trade['profit'] = ((current_close * QTY) - (buy_price * QTY)) * current_bnb
             trade['profit_perc'] = (current_close - buy_price) / buy_price
             trades.append(trade)
@@ -100,16 +104,21 @@ def test_bbands():
 
     profit = 0.0
     profitsrel = 0.0
+    commission = 0
 
     for i in trades:
         profit += i['profit']
         profitsrel += i['profit_perc']
+        commission += i['buy_commission']
+        commission += i['sell_commission']
 
     print("")
     print("TOTAL:")
     print("Buys: " + str(ctnBuy))
     print("Sells: " + str(ctnSell))
     print("profit " + str(profit))
+    print("commision " + str(commission))
+    print("real return " + str(profit - commission))
     print("profit in % " + str(profitsrel))
 
 if __name__ == '__main__':
