@@ -121,10 +121,15 @@ def main(coin, qty, stoploss, takeprofit):
 
         current_close = ohlc.Close.iloc[-1]
         middle = ohlc['bbands_middle'].iloc[-1]
+        lower = ohlc['bbands_lower'].iloc[-1]
 
         print('current_close ' + str(current_close))
+        print('middle ' + str(middle))
+        print('lower ' + str(lower))
+
         if not open_position and (
-                current_close < middle):
+                current_close < middle and
+                current_close > lower):
             create_order(coin, qty, side='BUY')
             open_position = True
             time.sleep(SLEEP_INTERVAL_IN_SEC)
@@ -139,7 +144,9 @@ def main(coin, qty, stoploss, takeprofit):
                 upper = ohlc['bbands_upper'].iloc[-1]
                 lower = ohlc['bbands_lower'].iloc[-1]
                 middle = ohlc['bbands_middle'].iloc[-1]
-
+                print('current_close ' + str(current_close))
+                print('upper ' + str(upper))
+                print('lower ' + str(lower))
                 if current_high > upper or current_close < lower:
                     # sell all you have
                     current_quantity = float(binance_client.get_asset_balance(COIN['asset'])['free'])
