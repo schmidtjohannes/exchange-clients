@@ -27,7 +27,7 @@ if __name__ == '__main__':
     df.drop(columns=['id','orderId','isBestMatch'], inplace=True)
 
     today = datetime.today()
-    yesterday = yesterday = datetime.now() - timedelta(1)
+    yesterday = yesterday = datetime.now() - timedelta(2)
     lookup_date_yesterday = datetime.strftime(yesterday, '%Y-%m-%d')
     lookup_date = datetime.strftime(today, '%Y-%m-%d')
 
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     # while not df.iloc[-1].isBuyer:
         # df = df.tail(len(df) - 1)
     # df = df.tail(len(df) - 1)
-    df = df.head(len(df) - 1)
+    # df = df.head(len(df) - 1)
 
 
     print(df)

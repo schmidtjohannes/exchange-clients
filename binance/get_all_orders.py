@@ -29,27 +29,32 @@ def calcStats(symbol, current_bnb):
    df.drop(columns=['id','orderListId','quoteQty','isBestMatch'], inplace=True)
 
    today = datetime.today()
-   yesterday = yesterday = datetime.now() - timedelta(1)
+   yesterday = datetime.now() - timedelta(1)
    lookup_date_yesterday = datetime.strftime(yesterday, '%Y-%m-%d')
    lookup_date = datetime.strftime(today, '%Y-%m-%d')
    # BNB only
    df = df[df['commissionAsset'] == 'BNB']
    # time range
-   df = df.loc[lookup_date_yesterday:lookup_date]
-   #df = df.loc['2021-12-08 10:30':'2021-12-08']
-
+   # df = df.loc[lookup_date_yesterday:lookup_date]
+   df = df.loc['2021-12-22 14:28':'2021-12-24']
+   
    # remove first row if SELL
-   while not df.iloc[0].isBuyer:
-      df = df.tail(len(df) - 1)
-
+   # while not df.iloc[0].isBuyer:
+      # df = df.tail(len(df) - 1)
+   
    # remove last row if BUY
-   while df.iloc[-1].isBuyer:
-      df = df.head(len(df) - 1)
+   # while df.iloc[-1].isBuyer:
+      # df = df.head(len(df) - 1)
+   # df = df.tail(3)
+   # df = df.head(len(df) - 1)
 
    df["price"] = pd.to_numeric(df["price"], downcast="float")
    df["qty"] = pd.to_numeric(df["qty"], downcast="float")
    df["commission"] = pd.to_numeric(df["commission"], downcast="float")
    df['total'] = df.apply(calcTotal, axis=1)
+
+   print(len(df))
+   print(df)
 
    buys = df[df["isBuyer"] == True]
    sells = df[df["isBuyer"] == False]
@@ -118,5 +123,6 @@ if __name__ == '__main__':
    current_bnb = float(ticker['price'])
 
    # for symbol in ['ENJ', 'DOT', 'MATIC', 'GALA', 'IOTA', 'SAND']:
-   for symbol in ['GALA', 'SAND', 'MATIC']:
+   # for symbol in ['LUNA', 'ONE', 'MATIC', 'AAVE', 'NEAR']:
+   for symbol in ['AAVE', 'NEAR', 'MATIC']:
       calcStats(symbol, current_bnb)
